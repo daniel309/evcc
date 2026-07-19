@@ -131,8 +131,6 @@
       "feedinPrice": "Cena prejete energije iz omrežja",
       "gridPrice": "Cena omrežja",
       "heaterTempLimit": "Omejitev ogrevanja",
-      "hemsActiveLimit": "Aktivna omejitev",
-      "hemsType": "Komunikacija",
       "identifier": "RFID-identifikator",
       "no": "ne",
       "odometer": "Število kilometrov",
@@ -157,10 +155,6 @@
       "A": "A (brez povezave)",
       "B": "B (povezan)",
       "C": "C (polnjenje)"
-    },
-    "deviceValueHemsType": {
-      "eebus": "preko EEBus",
-      "relay": "prek releja"
     },
     "devices": {
       "auxMeter": "Pametni porabnik",
@@ -656,32 +650,13 @@
       "validate": "preveri"
     },
     "vehicle": {
-      "cancel": "Prekliči",
-      "chargingSettings": "Nastavitve polnjenja",
-      "defaultMode": "Privzeti način",
-      "defaultModeHelp": "Način polnjenja pri priklopu vozila.",
-      "delete": "Izbriši",
       "generic": "Druge integracije",
-      "identifiers": "RFID identifikatorji",
-      "identifiersHelp": "Seznam nizov RFID za identifikacijo vozila. En vnos na vrstico. Trenutni identifikator najdete na ustrezni polnilni postaji na strani s pregledom.",
-      "maximumCurrent": "Največji tok",
-      "maximumCurrentHelp": "Mora biti večji od minimalnega toka.",
-      "maximumPhases": "Največ faz",
-      "maximumPhasesHelp": "S koliko fazami se lahko to vozilo polni? Uporablja se za izračun potrebnega minimalnega presežka sončne energije in trajanja načrta.",
-      "maximumPower": "Največja moč polnjenja",
-      "maximumPowerHelp": "Največja moč, ki jo lahko vozilo porabi",
-      "minimumCurrent": "Najmanjši tok",
-      "minimumCurrentHelp": "Pod 6A se spustite le, če veste, kaj počnete.",
       "online": "Vozila s spletnim API-jem",
       "primary": "Generične integracije",
-      "priority": "Prioriteta",
-      "priorityHelp": "Višja prioriteta pomeni, da ima to vozilo prednostni dostop do presežka sončne energije.",
-      "save": "Shrani",
       "scooter": "Skuter",
       "template": "Proizvajalec",
       "titleAdd": "Dodaj vozilo",
-      "titleEdit": "Uredi vozilo",
-      "validateSave": "Preveri in shrani"
+      "titleEdit": "Uredi vozilo"
     }
   },
   "footer": {
@@ -901,9 +876,7 @@
     "chargingPlan": {
       "active": "Aktivno",
       "addRepeatingPlan": "Dodaj ponavljajoči načrt",
-      "arrivalTab": "Prihod",
       "day": "Dan",
-      "departureTab": "Odhod",
       "goal": "Cilj polnjenja",
       "modalTitle": "Načrt polnjenja",
       "none": "brez",
@@ -932,8 +905,6 @@
       "strategySettings": "Nastavitve strategije",
       "time": "Čas",
       "title": "Načrt",
-      "titleMinSoc": "Min. polnjenje",
-      "titleTargetCharge": "Odhod",
       "unsavedChanges": "Obstajajo neshranjene spremembe. Želite uporabiti zdaj?",
       "update": "Uporabi",
       "weekdays": "Dnevi"
@@ -942,9 +913,9 @@
       "battery": "Baterija",
       "batteryCharge": "Polnjenje baterije",
       "batteryDischarge": "Praznjenje baterije",
+      "batteryDischargeHold": "Baterija (zaklenjena)",
       "batteryGridChargeActive": "polnjenje iz omrežja aktivno",
       "batteryGridChargeLimit": "polnjenje iz omrežja ko",
-      "batteryHold": "Baterija (zaklenjena)",
       "batteryTooltip": "{energy} od {total} ({soc})",
       "forecastTooltip": "napoved: preostala sončna proizvodnja danes",
       "gridImport": "Uvoz iz omrežja",
@@ -964,7 +935,6 @@
       "waitForVehicle": "Pripravljen. Čakam na grelec…"
     },
     "hemsWarning": {
-      "description": "Upočasnjeno polnjenje, da se ne preseže {limit}.",
       "title": "Zunanja omejitev:"
     },
     "loadpoint": {
@@ -992,19 +962,11 @@
       "currents": "Polnilni tok",
       "default": "privzeto",
       "disclaimerHint": "Opomba:",
-      "limitSoc": {
-        "description": "Omejitev polnjenja, ki se uporablja, ko je to vozilo povezano.",
-        "label": "Privzeta omejitev"
-      },
       "maxCurrent": {
         "label": "Maks. tok"
       },
       "minCurrent": {
         "label": "Min. tok"
-      },
-      "minSoc": {
-        "description": "Za nujne primere. Vozilo se »hitro« napolni na {0} od vse razpoložljive solarne energije, nato pa nadaljuje samo s solarnim presežkom.",
-        "label": "Min. polnjenje %"
       },
       "onlyForSocBasedCharging": "Te možnosti so na voljo samo za vozila z znano stopnjo napolnjenosti.",
       "phasesConfigured": {
