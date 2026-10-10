@@ -155,27 +155,35 @@ func (site *Site) applyTemperatureCorrection(profile []float64, binned map[int]m
 		// 1. Try Temperature-Binned Historical Lookup (k-NN at forecast temperature)
 		if binned != nil && binned[slotInDay] != nil {
 			tempBin := int(math.Round(tFuture))
+			var binnedVal float64
+			var matched bool
+
 			if val, ok := binned[slotInDay][tempBin]; ok {
-				res[i] = val
-				if logged < 3 && val > 0 {
-					site.log.DEBUG.Printf("temperature correction: slot %s (h=%02d): forecast=%.1f°C -> binned match [%d°C]=%.0fWh",
-						ts.Local().Format("15:04"), h, tFuture, tempBin, val*1e3)
-					logged++
+				binnedVal = val
+				matched = true
+			} else {
+				// Check adjacent ±1°C bins
+				valMinus, okMinus := binned[slotInDay][tempBin-1]
+				valPlus, okPlus := binned[slotInDay][tempBin+1]
+				if okMinus && okPlus {
+					binnedVal = (valMinus + valPlus) / 2
+					matched = true
+				} else if okMinus {
+					binnedVal = valMinus
+					matched = true
+				} else if okPlus {
+					binnedVal = valPlus
+					matched = true
 				}
-				continue
 			}
 
-			// Check adjacent ±1°C bins
-			valMinus, okMinus := binned[slotInDay][tempBin-1]
-			valPlus, okPlus := binned[slotInDay][tempBin+1]
-			if okMinus && okPlus {
-				res[i] = (valMinus + valPlus) / 2
-				continue
-			} else if okMinus {
-				res[i] = valMinus
-				continue
-			} else if okPlus {
-				res[i] = valPlus
+			if matched {
+				res[i] = binnedVal
+				if logged < 3 && binnedVal > 0 {
+					site.log.DEBUG.Printf("temperature correction: slot %s (h=%02d): forecast=%.1f°C -> binned match [%d°C]=%.0fWh",
+						ts.Local().Format("15:04"), h, tFuture, tempBin, binnedVal*1e3)
+					logged++
+				}
 				continue
 			}
 		}
