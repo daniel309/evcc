@@ -200,9 +200,12 @@ func (site *Site) applyTemperatureCorrection(profile []float64, binned map[int]m
 		pastAvg := pastSum[h] / float64(pastCount[h])
 		denominator := tRoom - pastAvg
 		if denominator <= 0.5 {
+			site.log.DEBUG.Printf("temperature correction: slot %s (h=%02d): hist_avg=%.1f°C too close to room temp=%.1f°C, skipping slot",
+				ts.Local().Format("15:04"), h, pastAvg, tRoom)
 			continue
 		}
 
+		// clamp to prevent extreme corrections from bad data
 		factor := min(maxCorrection, max(minCorrection, (tRoom-tFuture)/denominator))
 		res[i] = profile[i] * factor
 
