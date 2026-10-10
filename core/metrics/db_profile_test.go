@@ -43,38 +43,38 @@ func TestEnergyProfileWeekday(t *testing.T) {
 	}
 }
 
-func TestEnergyProfileActiveDays(t *testing.T) {
+func TestEnergyProfileTemperatureBinned(t *testing.T) {
 	require.NoError(t, db.NewInstance("sqlite", ":memory:"))
 	require.NoError(t, SetupSchema())
 
 	e := entity{Id: 3, Name: "heater1", Group: Loadpoint}
 	require.NoError(t, db.Instance.Create(&e).Error)
 
-	// 14 past days:
-	// days -14..-8: 7 active days with energy = 0.1 kWh/slot (total 9.6 kWh/day >= 8.0 kWh threshold)
-	// days -7..-1:  7 warm/idle days with energy = 0.001 kWh/slot (total 0.096 kWh/day < 8.0 kWh threshold)
-	for day := -14; day < 0; day++ {
+	// Populate 7 days with varying temperature and energy
+	for day := -7; day < 0; day++ {
 		base := now.BeginningOfDay().AddDate(0, 0, day)
-		energy := 0.001
-		if day < -7 {
-			energy = 0.1
-		}
+		temp := 5.0 + float64(day) // 5°C to -1°C
 
 		for slot := range 96 {
 			ts := base.Add(time.Duration(slot) * tariff.SlotDuration)
+			energy := 0.5 - float64(day)*0.05 // colder -> higher energy
+
 			require.NoError(t, persist(e, ts, energy, 0, nil, false))
+
+			tv := tariffValue{
+				Timestamp:   ts.Unix(),
+				Temperature: &temp,
+			}
+			require.NoError(t, db.Instance.Create(&tv).Error)
 		}
 	}
 
-	// Active days profile should skip the 7 warm days and average the 7 active days (0.1 kWh/slot)
-	res, err := energyProfileActiveDays(e, 7, 8.0, 0)
+	res, err := energyProfileTemperatureBinned(e)
 	require.NoError(t, err)
+	require.Len(t, res, 96)
 
-	for i, v := range res {
-		require.InDelta(t, 0.1, v, 1e-6, "slot %d", i)
-	}
-
-	// If threshold is higher than any day (e.g. 50 kWh), ErrIncomplete should be returned
-	_, err = energyProfileActiveDays(e, 7, 50.0, 0)
-	require.ErrorIs(t, err, ErrIncomplete)
+	// Verify that temperature bins exist for slot 0
+	require.NotEmpty(t, res[0])
+	// When temp was rounded to 5°C (day=-7, temp=-2°C? wait 5 + (-7) = -2)
+	require.Contains(t, res[0], -2)
 }

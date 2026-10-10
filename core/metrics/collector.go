@@ -183,8 +183,8 @@ func (c *Collector) EnergyProfileWeekday(weekday time.Weekday) (*[96]float64, er
 	return energyProfileFiltered(c.entity, from, &wd, profilePercentile())
 }
 
-func (c *Collector) EnergyProfileActiveDays(days int, minDailyEnergy float64) (*[96]float64, error) {
-	return energyProfileActiveDays(c.entity, days, minDailyEnergy, profilePercentile())
+func (c *Collector) EnergyProfileTemperatureBinned() (map[int]map[int]float64, error) {
+	return energyProfileTemperatureBinned(c.entity)
 }
 
 // LastSlotEnergy returns the energy in kWh of the most recently completed

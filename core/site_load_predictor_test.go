@@ -64,7 +64,8 @@ func TestApplyTemperatureCorrection(t *testing.T) {
 
 	profile := slices.Repeat([]float64{2.0}, 12)
 
-	result := site.applyTemperatureCorrection(profile)
+	// 1. Fallback linear scaling (binned == nil)
+	result := site.applyTemperatureCorrection(profile, nil)
 
 	require.Len(t, result, 12)
 
@@ -74,6 +75,16 @@ func TestApplyTemperatureCorrection(t *testing.T) {
 	assert.Greater(t, result[0], result[4], "first hour should be higher than second hour")
 	// above the heating threshold space heating is stopped and scales down to base load floor (10%)
 	assert.InDelta(t, 0.2, result[8], 1e-6, "third hour scales to base load floor when above heating threshold")
+
+	// 2. Temperature-binned lookup
+	slotInDay := (now.Hour()*60 + now.Minute()) / 15
+	binned := map[int]map[int]float64{
+		slotInDay: {
+			5: 3.5, // 5°C forecast matches 3.5 kWh
+		},
+	}
+	resultBinned := site.applyTemperatureCorrection(profile, binned)
+	assert.InDelta(t, 3.5, resultBinned[0], 1e-6, "binned exact match should be used directly")
 }
 
 func TestTileAndTrim(t *testing.T) {

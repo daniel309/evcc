@@ -3,6 +3,7 @@ package metrics
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/evcc-io/evcc/core/keys"
@@ -80,72 +81,65 @@ func energyProfileFiltered(entity entity, from time.Time, weekday *int, percenti
 	return scanProfile(rows)
 }
 
-// energyProfileActiveDays queries the 96-slot profile at the given percentile
-// across up to `days` most recent past calendar days where total daily energy was at least `minDailyEnergy`.
-func energyProfileActiveDays(entity entity, days int, minDailyEnergy float64, percentile float64) (*[96]float64, error) {
+// energyProfileTemperatureBinned queries the historical average energy per 15-minute slot
+// and rounded temperature (degree Celsius).
+func energyProfileTemperatureBinned(entity entity) (map[int]map[int]float64, error) {
 	database, err := db.Instance.DB()
 	if err != nil {
 		return nil, err
 	}
 
 	before := now.BeginningOfDay().Unix()
-	args := []any{entity.Id, before, minDailyEnergy, days, entity.Id, before}
+	query := `SELECT strftime('%H:%M', m.ts, 'unixepoch', 'localtime') AS slot,
+		CAST(round(t.temperature) AS INTEGER) AS temp_bin,
+		avg(m.energy) AS energy
+	FROM meters m
+	JOIN tariffs t ON m.ts = t.ts
+	WHERE m.meter = ? AND m.ts < ? AND COALESCE(m.recovered, 0) = 0
+		AND t.temperature IS NOT NULL
+	GROUP BY slot, temp_bin`
 
-	query := `WITH daily_totals AS (
-		SELECT date(ts, 'unixepoch', 'localtime') AS day_date
-		FROM meters
-		WHERE meter = ? AND ts < ? AND COALESCE(recovered, 0) = 0
-		GROUP BY day_date
-		HAVING sum(COALESCE(energy, 0)) >= ?
-		ORDER BY day_date DESC
-		LIMIT ?
-	), slots AS (
-		SELECT ts, COALESCE(energy, 0) AS energy, strftime('%H:%M', ts, 'unixepoch', 'localtime') AS slot
-		FROM meters
-		WHERE meter = ? AND ts < ? AND COALESCE(recovered, 0) = 0
-			AND date(ts, 'unixepoch', 'localtime') IN (SELECT day_date FROM daily_totals)
-	)
-	SELECT min(ts) AS ts, avg(energy) AS energy
-	FROM slots
-	GROUP BY slot
-	ORDER BY slot ASC`
-
-	if percentile > 0 {
-		args = append(args, percentile)
-		query = `WITH daily_totals AS (
-			SELECT date(ts, 'unixepoch', 'localtime') AS day_date
-			FROM meters
-			WHERE meter = ? AND ts < ? AND COALESCE(recovered, 0) = 0
-			GROUP BY day_date
-			HAVING sum(COALESCE(energy, 0)) >= ?
-			ORDER BY day_date DESC
-			LIMIT ?
-		), slots AS (
-			SELECT ts, COALESCE(energy, 0) AS energy, strftime('%H:%M', ts, 'unixepoch', 'localtime') AS slot
-			FROM meters
-			WHERE meter = ? AND ts < ? AND COALESCE(recovered, 0) = 0
-				AND date(ts, 'unixepoch', 'localtime') IN (SELECT day_date FROM daily_totals)
-		), ranked AS (
-			SELECT slot, energy,
-				min(ts) OVER (PARTITION BY slot) AS ts,
-				row_number() OVER (PARTITION BY slot ORDER BY energy) AS rn,
-				? * (count(*) OVER (PARTITION BY slot) - 1) + 1 AS pos
-			FROM slots
-		)
-		SELECT ts, sum(energy * (1 - abs(rn - pos))) AS energy
-		FROM ranked
-		WHERE abs(rn - pos) < 1
-		GROUP BY slot
-		ORDER BY slot ASC`
-	}
-
-	rows, err := database.Query(query, args...)
+	rows, err := database.Query(query, entity.Id, before)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	return scanProfile(rows)
+	res := make(map[int]map[int]float64)
+
+	for rows.Next() {
+		var slotStr string
+		var tempBin int
+		var energy float64
+
+		if err := rows.Scan(&slotStr, &tempBin, &energy); err != nil {
+			return nil, err
+		}
+
+		var h, m int
+		if _, err := fmt.Sscanf(slotStr, "%d:%d", &h, &m); err != nil {
+			continue
+		}
+		slotIdx := h*4 + m/15
+		if slotIdx < 0 || slotIdx >= 96 {
+			continue
+		}
+
+		if res[slotIdx] == nil {
+			res[slotIdx] = make(map[int]float64)
+		}
+		res[slotIdx][tempBin] = energy
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(res) == 0 {
+		return nil, ErrIncomplete
+	}
+
+	return res, nil
 }
 
 func scanProfile(rows *sql.Rows) (*[96]float64, error) {
