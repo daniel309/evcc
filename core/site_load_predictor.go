@@ -143,7 +143,7 @@ func (site *Site) applyTemperatureCorrection(profile []float64, binned map[int]m
 	for i := range profile {
 		ts := slotStart.Add(time.Duration(i) * tariff.SlotDuration)
 		h := ts.UTC().Hour()
-		slotInDay := (ts.Hour()*60 + ts.Minute()) / 15
+		slotInDay := (ts.Local().Hour()*60 + ts.Local().Minute()) / 15
 
 		r, err := rates.At(ts)
 		if err != nil {

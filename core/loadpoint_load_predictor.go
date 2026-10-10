@@ -29,7 +29,6 @@ func (lp *Loadpoint) demandProfile() (*[96]float64, bool) {
 	}
 
 	profile, err := lp.chargeEnergy.EnergyProfile(from)
-
 	if err != nil {
 		lp.log.DEBUG.Printf("demand profile: %v", err)
 		return nil, false
