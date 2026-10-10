@@ -152,18 +152,6 @@ func (site *Site) applyTemperatureCorrection(profile []float64, binned map[int]m
 		}
 		tFuture := r.Value
 
-		// above the heating threshold space heating is stopped, keeping only the
-		// minimum base load floor (e.g. summer DHW / standby)
-		if tFuture >= heatingStopThreshold {
-			res[i] = profile[i] * minCorrection
-			if logged < 3 && profile[i] > 0 {
-				site.log.DEBUG.Printf("temperature correction: slot %s (h=%02d): forecast=%.1f°C >= threshold=%.1f°C, scaled to base load floor (load: %.0fWh -> %.0fWh)",
-					ts.Local().Format("15:04"), h, tFuture, heatingStopThreshold, profile[i]*1e3, res[i]*1e3)
-				logged++
-			}
-			continue
-		}
-
 		// 1. Try Temperature-Binned Historical Lookup (k-NN at forecast temperature)
 		if binned != nil && binned[slotInDay] != nil {
 			tempBin := int(math.Round(tFuture))
@@ -193,6 +181,18 @@ func (site *Site) applyTemperatureCorrection(profile []float64, binned map[int]m
 		}
 
 		// 2. Fallback: Linear Scaling using historical temperature average
+		// above the heating threshold space heating is stopped, keeping only the
+		// minimum base load floor (e.g. summer DHW / standby)
+		if tFuture >= heatingStopThreshold {
+			res[i] = profile[i] * minCorrection
+			if logged < 3 && profile[i] > 0 {
+				site.log.DEBUG.Printf("temperature correction: slot %s (h=%02d): forecast=%.1f°C >= threshold=%.1f°C, scaled to base load floor (load: %.0fWh -> %.0fWh)",
+					ts.Local().Format("15:04"), h, tFuture, heatingStopThreshold, profile[i]*1e3, res[i]*1e3)
+				logged++
+			}
+			continue
+		}
+
 		if pastCount[h] == 0 {
 			continue
 		}

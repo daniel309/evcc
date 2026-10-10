@@ -77,14 +77,19 @@ func TestApplyTemperatureCorrection(t *testing.T) {
 	assert.InDelta(t, 0.2, result[8], 1e-6, "third hour scales to base load floor when above heating threshold")
 
 	// 2. Temperature-binned lookup
-	slotInDay := (now.Hour()*60 + now.Minute()) / 15
+	slotInDay := (now.Local().Hour()*60 + now.Local().Minute()) / 15
+	slotInDay8 := (slotInDay + 8) % 96
 	binned := map[int]map[int]float64{
 		slotInDay: {
 			5: 3.5, // 5°C forecast matches 3.5 kWh
 		},
+		slotInDay8: {
+			20: 0.8, // 20°C forecast (above 18°C) matches recorded 0.8 kWh DHW cycle
+		},
 	}
 	resultBinned := site.applyTemperatureCorrection(profile, binned)
 	assert.InDelta(t, 3.5, resultBinned[0], 1e-6, "binned exact match should be used directly")
+	assert.InDelta(t, 0.8, resultBinned[8], 1e-6, "binned exact match for warm temp (>=18°C) should be used directly")
 }
 
 func TestTileAndTrim(t *testing.T) {
