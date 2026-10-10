@@ -201,6 +201,8 @@ func (site *Site) applyTemperatureCorrection(profile []float64, binned map[int]m
 			continue
 		}
 
+		// require past temperature data for hour h to compute pastAvg and avoid division by zero
+		// (e.g. after startup when the weather source only provides forecast data from today onward)
 		if pastCount[h] == 0 {
 			continue
 		}
