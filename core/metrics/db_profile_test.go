@@ -69,12 +69,26 @@ func TestEnergyProfileTemperatureBinned(t *testing.T) {
 		}
 	}
 
+	// Populate data older than 1 year (day=-400) at 10°C; should be ignored
+	oldBase := now.BeginningOfDay().AddDate(0, 0, -400)
+	oldTemp := 10.0
+	for slot := range 96 {
+		ts := oldBase.Add(time.Duration(slot) * tariff.SlotDuration)
+		require.NoError(t, persist(e, ts, 99.0, 0, nil, false))
+		tv := tariffValue{
+			Timestamp:   ts.Unix(),
+			Temperature: &oldTemp,
+		}
+		require.NoError(t, db.Instance.Create(&tv).Error)
+	}
+
 	res, err := energyProfileTemperatureBinned(e)
 	require.NoError(t, err)
 	require.Len(t, res, 96)
 
 	// Verify that temperature bins exist for slot 0
 	require.NotEmpty(t, res[0])
-	// When temp was rounded to 5°C (day=-7, temp=-2°C? wait 5 + (-7) = -2)
 	require.Contains(t, res[0], -2)
+	// Old data from day -400 (temp 10°C) must not be included
+	require.NotContains(t, res[0], 10)
 }
